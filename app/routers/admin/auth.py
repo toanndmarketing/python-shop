@@ -30,11 +30,11 @@ def get_current_admin_user(request: Request):
         return fake_session_db[session_token]
     return None
 
-@router.get("/login", response_class=HTMLResponse)
+@router.get("/login", response_class=HTMLResponse, name="login_page")
 async def login_page(request: Request):
     return TEMPLATES_ADMIN.TemplateResponse("login.html", {"request": request})
 
-@router.post("/login")
+@router.post("/login", name="login_admin")
 async def login_admin(request: Request, username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
     if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
         # Create a simple session token (insecure, for demo purposes only)
@@ -53,7 +53,7 @@ async def login_admin(request: Request, username: str = Form(...), password: str
             {"request": request, "error_message": "Tên đăng nhập hoặc mật khẩu không hợp lệ"}
         )
 
-@router.get("/logout")
+@router.get("/logout", name="logout_admin")
 async def logout_admin(request: Request):
     session_token = request.cookies.get("admin_session_token")
     if session_token and session_token in fake_session_db:

@@ -1,4 +1,4 @@
-{% extends "admin/layout.html" %}
+{% extends "layout.html" %}
 
 {% block title %}Quản Lý Sản Phẩm{% endblock %}
 
@@ -17,17 +17,13 @@
 {% block page_title %}Quản Lý Sản Phẩm{% endblock %}
 
 {% block header_actions %}
-    <a href="{{ url_for('admin_products.add_product') }}" class="btn-primary">Thêm Sản Phẩm Mới</a>
+    <a href="{{ url_for('add_product') }}" class="btn-primary">Thêm Sản Phẩm Mới</a>
 {% endblock %}
 
 {% block content %}
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }}">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+    {% if message %}
+        <div class="alert alert-success">{{ message }}</div> {# Assuming 'success' for general messages from this route #}
+    {% endif %}
 
     <div class="table-container">
         {% if products %}
@@ -62,8 +58,8 @@
                     <td>{{ product.stock_quantity }}</td>
                     <td>{{ product.created_at.strftime('%Y-%m-%d') if product.created_at else 'N/A' }}</td>
                     <td class="actions">
-                        <a href="{{ url_for('admin_products.edit_product', product_id=product.id) }}" class="edit-btn">Sửa</a>
-                        <form action="{{ url_for('admin_products.delete_product', product_id=product.id) }}" method="GET" style="display: inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa sản phẩm này không?');">
+                        <a href="{{ url_for('edit_product', product_id=product.id) }}" class="edit-btn">Sửa</a>
+                        <form action="{{ url_for('delete_product', product_id=product.id) }}" method="GET" style="display: inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa sản phẩm này không?');">
                             <button type="submit" class="delete-btn">Xóa</button>
                         </form>
                     </td>
@@ -72,7 +68,7 @@
             </tbody>
         </table>
         {% else %}
-            <p>Chưa có sản phẩm nào. <a href="{{ url_for('admin_products.add_product') }}">Thêm sản phẩm mới</a>.</p>
+            <p>Chưa có sản phẩm nào. <a href="{{ url_for('add_product') }}">Thêm sản phẩm mới</a>.</p>
         {% endif %}
     </div>
 {% endblock %}

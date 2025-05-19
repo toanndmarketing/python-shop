@@ -1,4 +1,4 @@
-{% extends "admin/layout.html" %}
+{% extends "layout.html" %}
 
 {% set form_title = "Thêm Sản Phẩm Mới" if not product else "Chỉnh Sửa Sản Phẩm: " ~ product.name %}
 {% block title %}{{ form_title }}{% endblock %}
@@ -24,18 +24,10 @@
 {% block page_title %}{{ form_title }}{% endblock %}
 
 {% block header_actions %}
-    <a href="{{ url_for('admin_products.list_products') }}" class="back-link">&laquo; Quay lại Danh sách Sản phẩm</a>
+    <a href="{{ url_for('list_products') }}" class="back-link">&laquo; Quay lại Danh sách Sản phẩm</a>
 {% endblock %}
 
 {% block content %}
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }}">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-
     {% if error_messages %}
         <div class="alert alert-danger">
             <strong>Vui lòng sửa các lỗi sau:</strong>
@@ -50,7 +42,11 @@
     {% endif %}
 
     <div class="form-container">
-        <form method="POST" enctype="multipart/form-data" action="{{ url_for(request.endpoint, product_id=product.id if product else None) }}">
+        {% if product %}
+        <form method="POST" enctype="multipart/form-data" action="{{ url_for('update_product', product_id=product.id) }}">
+        {% else %}
+        <form method="POST" enctype="multipart/form-data" action="{{ url_for('create_product') }}">
+        {% endif %}
             {{ form.csrf_token if form and form.csrf_token }}
             <div class="form-group">
                 <label for="name">Tên Sản Phẩm <span style="color:red;">*</span></label>

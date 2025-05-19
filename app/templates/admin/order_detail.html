@@ -1,4 +1,4 @@
-{% extends "admin/layout.html" %}
+{% extends "layout.html" %}
 
 {% block title %}Chi Tiết Đơn Hàng #{{ order.order_number }}{% endblock %}
 
@@ -27,7 +27,7 @@
 {% block page_title %}Chi Tiết Đơn Hàng #{{ order.order_number }}{% endblock %}
 
 {% block header_actions %}
-    <a href="{{ url_for('admin_orders.list_orders') }}" class="back-link">&laquo; Quay lại Danh sách Đơn Hàng</a>
+    <a href="{{ url_for('list_orders') }}" class="back-link">&laquo; Quay lại Danh sách Đơn Hàng</a>
 {% endblock %}
 
 {% block content %}
@@ -99,7 +99,7 @@
 
     <div class="update-status-container form-container">
         <h2 class="section-title">Cập Nhật Trạng Thái Đơn Hàng</h2>
-        <form method="post" action="{{ url_for('admin_orders.update_order_status', order_id=order.id) }}">
+        <form method="post" action="{{ url_for('update_order_status', order_id=order.id) }}">
             <div class="form-group">
                 <label for="status">Trạng Thái Mới:</label>
                 <select id="status" name="status">

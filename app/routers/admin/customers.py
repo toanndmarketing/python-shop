@@ -18,7 +18,7 @@ router = APIRouter(
     dependencies=[Depends(get_admin_user_or_redirect)]
 )
 
-@router.get("", response_class=HTMLResponse)
+@router.get("", response_class=HTMLResponse, name="list_customers")
 async def list_customers(request: Request, db: Session = Depends(get_db), message: Optional[str] = None, admin_user: dict = Depends(get_admin_user_or_redirect)):
     # Lấy tất cả user không phải là admin
     customers = db.query(User).filter(User.is_admin == False).order_by(User.created_at.desc()).all()
@@ -28,7 +28,7 @@ async def list_customers(request: Request, db: Session = Depends(get_db), messag
     
     return TEMPLATES_ADMIN.TemplateResponse("customers.html", {"request": request, "customers": customers, "message": message, "active_page": "customers"})
 
-@router.post("/toggle_active/{user_id}")
+@router.post("/toggle_active/{user_id}", name="toggle_customer_active")
 async def toggle_customer_active_status(
     user_id: int,
     request: Request,

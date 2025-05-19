@@ -25,17 +25,17 @@ router = APIRouter(
     dependencies=[Depends(get_admin_user_or_redirect)]
 )
 
-@router.get("", response_class=HTMLResponse)
+@router.get("", response_class=HTMLResponse, name="list_products")
 async def list_products(request: Request, db: Session = Depends(get_db), message: Optional[str] = None):
     products = db.query(Product).options(joinedload(Product.category)).order_by(Product.id.desc()).all()
     return TEMPLATES_ADMIN.TemplateResponse("products.html", {"request": request, "products": products, "message": message, "active_page": "products"})
 
-@router.get("/add", response_class=HTMLResponse)
+@router.get("/add", response_class=HTMLResponse, name="add_product")
 async def add_product_form(request: Request, db: Session = Depends(get_db)):
     categories = db.query(Category).order_by(Category.name).all()
     return TEMPLATES_ADMIN.TemplateResponse("product_form.html", {"request": request, "categories": categories, "product": None, "active_page": "products"})
 
-@router.post("/add")
+@router.post("/add", name="create_product")
 async def add_product(
     request: Request,
     db: Session = Depends(get_db),
@@ -82,7 +82,7 @@ async def add_product(
     )
     return RedirectResponse(url="/admin/products?message=Thêm sản phẩm thành công", status_code=302)
 
-@router.get("/edit/{product_id}", response_class=HTMLResponse)
+@router.get("/edit/{product_id}", response_class=HTMLResponse, name="edit_product")
 async def edit_product_form(product_id: int, request: Request, db: Session = Depends(get_db)):
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
@@ -90,7 +90,7 @@ async def edit_product_form(product_id: int, request: Request, db: Session = Dep
     categories = db.query(Category).order_by(Category.name).all()
     return TEMPLATES_ADMIN.TemplateResponse("product_form.html", {"request": request, "product": product, "categories": categories, "active_page": "products"})
 
-@router.post("/edit/{product_id}")
+@router.post("/edit/{product_id}", name="update_product")
 async def edit_product(
     product_id: int,
     request: Request,
@@ -162,7 +162,7 @@ async def edit_product(
     )
     return RedirectResponse(url="/admin/products?message=Cập nhật sản phẩm thành công", status_code=302)
 
-@router.get("/delete/{product_id}") # Using GET for simplicity, POST is safer for delete operations
+@router.get("/delete/{product_id}", name="delete_product")
 async def delete_product(product_id: int, request: Request, db: Session = Depends(get_db), admin_user: dict = Depends(get_admin_user_or_redirect)):
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:

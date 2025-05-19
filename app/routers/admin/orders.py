@@ -29,14 +29,14 @@ AVAILABLE_ORDER_STATUSES = {
     OrderStatus.CANCELLED: "Đã hủy"
 }
 
-@router.get("", response_class=HTMLResponse)
+@router.get("", response_class=HTMLResponse, name="list_orders")
 async def list_orders(request: Request, db: Session = Depends(get_db), message: Optional[str] = None, admin_user: dict = Depends(get_admin_user_or_redirect)):
     orders = db.query(Order).options(joinedload(Order.user)).order_by(Order.created_at.desc()).all()
     # Ghi log hành động xem danh sách đơn hàng
     # log_admin_activity(db, admin_user['username'], action="Xem danh sách đơn hàng", target_type="Order")
     return TEMPLATES_ADMIN.TemplateResponse("orders.html", {"request": request, "orders": orders, "message": message, "active_page": "orders"})
 
-@router.get("/view/{order_id}", response_class=HTMLResponse)
+@router.get("/view/{order_id}", response_class=HTMLResponse, name="view_order_detail")
 async def view_order_detail(order_id: int, request: Request, db: Session = Depends(get_db), admin_user: dict = Depends(get_admin_user_or_redirect)):
     order = db.query(Order).options(
         joinedload(Order.user),
@@ -59,7 +59,7 @@ async def view_order_detail(order_id: int, request: Request, db: Session = Depen
         }
     )
 
-@router.post("/update_status/{order_id}")
+@router.post("/update_status/{order_id}", name="update_order_status")
 async def update_order_status(
     order_id: int, 
     request: Request, 

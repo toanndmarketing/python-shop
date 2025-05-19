@@ -1,4 +1,4 @@
-{% extends "admin/layout.html" %}
+{% extends "layout.html" %}
 
 {% block title %}Quản Lý Khách Hàng{% endblock %}
 
@@ -39,13 +39,9 @@
 {% block page_title %}Quản Lý Khách Hàng{% endblock %}
 
 {% block content %}
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }}">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+    {% if message %}
+        <div class="alert alert-success">{{ message }}</div> {# Assuming 'success' #}
+    {% endif %}
 
     <div class="table-container">
         {% if customers %}
@@ -77,7 +73,7 @@
                         </span>
                     </td>
                     <td class="actions">
-                        <form action="{{ url_for('admin_customers.toggle_customer_active', user_id=customer.id) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn thay đổi trạng thái tài khoản này?')">
+                        <form action="{{ url_for('toggle_customer_active', user_id=customer.id) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn thay đổi trạng thái tài khoản này?')">
                             {% if customer.is_active %}
                                 <button type="submit" class="deactivate-btn">Ngừng Hoạt Động</button>
                             {% else %}

@@ -1,4 +1,4 @@
-{% extends "admin/layout.html" %}
+{% extends "layout.html" %}
 
 {% block title %}Quản Lý Đơn Hàng{% endblock %}
 
@@ -11,13 +11,9 @@
 {% block page_title %}Quản Lý Đơn Hàng{% endblock %}
 
 {% block content %}
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }}">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+    {% if message %}
+        <div class="alert alert-success">{{ message }}</div> {# Assuming 'success' #}
+    {% endif %}
 
     <div class="table-container">
         {% if orders %}
@@ -51,7 +47,7 @@
                     <td>{{ order.payment_method|upper if order.payment_method else 'N/A' }}</td>
                     <td>{{ order.payment_status|title if order.payment_status else 'N/A' }}</td>
                     <td class="actions">
-                        <a href="{{ url_for('admin_orders.view_order_detail', order_id=order.id) }}" class="view-btn">Xem Chi Tiết</a>
+                        <a href="{{ url_for('view_order_detail', order_id=order.id) }}" class="view-btn">Xem Chi Tiết</a>
                     </td>
                 </tr>
                 {% endfor %}
