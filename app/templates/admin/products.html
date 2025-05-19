@@ -1,0 +1,85 @@
+{% extends "admin/layout.html" %}
+
+{% block title %}Quản Lý Sản Phẩm{% endblock %}
+
+{% block head_extra %}
+<style>
+    .product-image-thumbnail {
+        max-width: 60px;
+        max-height: 60px;
+        object-fit: cover;
+        border-radius: 4px;
+    }
+    /* Action button styles are now in layout.html */
+</style>
+{% endblock %}
+
+{% block page_title %}Quản Lý Sản Phẩm{% endblock %}
+
+{% block header_actions %}
+    <a href="{{ url_for('admin_products.add_product') }}" class="btn-primary">Thêm Sản Phẩm Mới</a>
+{% endblock %}
+
+{% block content %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="table-container">
+        {% if products %}
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Ảnh</th>
+                    <th>Tên Sản Phẩm</th>
+                    <th>Danh Mục</th>
+                    <th>Giá</th>
+                    <th>Tồn Kho</th>
+                    <th>Ngày Tạo</th>
+                    <th class="actions">Hành Động</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in products %}
+                <tr>
+                    <td>{{ product.id }}</td>
+                    <td>
+                        {% if product.image_url %}
+                            <img src="{{ product.image_url if product.image_url.startswith('http') else url_for('static', path='images/products/' + product.image_url) }}" 
+                                 alt="{{ product.name }}" class="product-image-thumbnail">
+                        {% else %}
+                            (Không có ảnh)
+                        {% endif %}
+                    </td>
+                    <td>{{ product.name }}</td>
+                    <td>{{ product.category.name if product.category else 'N/A' }}</td>
+                    <td>{{ "%.0f"|format(product.price) }} đ</td>
+                    <td>{{ product.stock_quantity }}</td>
+                    <td>{{ product.created_at.strftime('%Y-%m-%d') if product.created_at else 'N/A' }}</td>
+                    <td class="actions">
+                        <a href="{{ url_for('admin_products.edit_product', product_id=product.id) }}" class="edit-btn">Sửa</a>
+                        <form action="{{ url_for('admin_products.delete_product', product_id=product.id) }}" method="GET" style="display: inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa sản phẩm này không?');">
+                            <button type="submit" class="delete-btn">Xóa</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p>Chưa có sản phẩm nào. <a href="{{ url_for('admin_products.add_product') }}">Thêm sản phẩm mới</a>.</p>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Any specific JS for this page can go here
+    // For example, if we had more complex delete confirmations or filters.
+</script>
+{% endblock %} 

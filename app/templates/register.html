@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Đăng ký - Cửa hàng Thể thao{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h3 class="mb-0">Đăng ký tài khoản</h3>
+                </div>
+                <div class="card-body">
+                    <form id="registerForm">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Tên đăng nhập <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Mật khẩu <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password_confirm" class="form-label">Nhập lại mật khẩu <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="password_confirm" name="password_confirm" required>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success">Đăng ký</button>
+                        </div>
+                        <p class="mt-3 text-center">
+                            Đã có tài khoản? <a href="{{ url_for('login_page') }}">Đăng nhập</a>
+                        </p>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+document.getElementById('registerForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const passwordConfirm = document.getElementById('password_confirm').value;
+
+    if (password !== passwordConfirm) {
+        alert('Mật khẩu và xác nhận mật khẩu không khớp!');
+        return;
+    }
+
+    const data = { username, password }; // Chỉ gửi username và password
+
+    try {
+        const response = await fetch('/api/v1/auth/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+        const result = await response.json();
+        if (response.ok) {
+            alert('Đăng ký thành công! Vui lòng đăng nhập.');
+            window.location.href = "{{ url_for('login_page') }}";
+        } else {
+            // Cố gắng hiển thị thông báo lỗi chi tiết hơn từ server nếu có
+            let errorMessage = 'Không thể đăng ký. Vui lòng thử lại.';
+            if (result.detail) {
+                if (typeof result.detail === 'string') {
+                    errorMessage = result.detail;
+                } else if (Array.isArray(result.detail)) {
+                    // Xử lý trường hợp lỗi validation từ Pydantic (list các dicts)
+                    errorMessage = result.detail.map(err => `${err.loc.join(' -> ')}: ${err.msg}`).join('\n');
+                } else if (typeof result.detail === 'object'){
+                     errorMessage = JSON.stringify(result.detail);
+                }
+            }
+            alert('Lỗi: ' + errorMessage);
+        }
+    } catch (error) {
+        console.error('Registration error:', error);
+        alert('Đã có lỗi xảy ra trong quá trình đăng ký.');
+    }
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Cửa hàng Thể thao{% endblock %}</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', path='/css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('home_page') }}">Cửa hàng Thể thao</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('home_page') }}">Trang chủ</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('products_page') }}">Sản phẩm</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item" id="cart-link-item">
+                        <a class="nav-link" href="{{ url_for('cart_page') }}"><i class="bi bi-cart"></i> Giỏ hàng <span id="cart-item-count" class="badge bg-danger" style="display:none;">0</span></a>
+                    </li>
+                    <li class="nav-item" id="profile-link-item" style="display:none;">
+                        <a class="nav-link" href="{{ url_for('profile_page') }}"><i class="bi bi-person-circle"></i> Hồ sơ</a>
+                    </li>
+                    <li class="nav-item" id="login-link-item">
+                        <a class="nav-link" href="{{ url_for('login_page') }}"><i class="bi bi-box-arrow-in-right"></i> Đăng nhập</a>
+                    </li>
+                    <li class="nav-item" id="register-link-item">
+                        <a class="nav-link" href="{{ url_for('register_page') }}"><i class="bi bi-person-plus"></i> Đăng ký</a>
+                    </li>
+                    <li class="nav-item" id="logout-link-item" style="display:none;">
+                        <button class="nav-link btn btn-link" id="logout-button"><i class="bi bi-box-arrow-right"></i> Đăng xuất</button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container my-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light py-4 mt-5">
+        <div class="container text-center">
+            <p>&copy; 2023 Cửa hàng Thể thao. Mọi quyền được bảo lưu.</p>
+            <p>
+                <a href="#" class="text-light">Chính sách Riêng tư</a> |
+                <a href="#" class="text-light">Điều khoản Dịch vụ</a>
+            </p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', path='/js/main.js') }}"></script>
+    <script>
+        function updateNavBasedOnLogin() {
+            const token = localStorage.getItem('accessToken');
+            const profileLink = document.getElementById('profile-link-item');
+            const loginLink = document.getElementById('login-link-item');
+            const registerLink = document.getElementById('register-link-item');
+            const logoutLink = document.getElementById('logout-link-item');
+            const cartLink = document.getElementById('cart-link-item'); // Giữ lại link giỏ hàng
+
+            if (token) {
+                if (profileLink) profileLink.style.display = 'block';
+                if (loginLink) loginLink.style.display = 'none';
+                if (registerLink) registerLink.style.display = 'none';
+                if (logoutLink) logoutLink.style.display = 'block';
+            } else {
+                if (profileLink) profileLink.style.display = 'none';
+                if (loginLink) loginLink.style.display = 'block';
+                if (registerLink) registerLink.style.display = 'block';
+                if (logoutLink) logoutLink.style.display = 'none';
+            }
+        }
+
+        async function updateCartBadge() {
+            const token = localStorage.getItem('accessToken');
+            const cartItemCountElement = document.getElementById('cart-item-count');
+            if (!cartItemCountElement) return;
+
+            let itemCount = 0;
+            if (token) {
+                try {
+                    const response = await fetch('/api/v1/orders/cart', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (response.ok) {
+                        const cartData = await response.json();
+                        itemCount = cartData.items ? cartData.items.length : 0;
+                    } else {
+                        console.warn("Không thể lấy giỏ hàng từ API, badge có thể không chính xác.");
+                    }
+                } catch (error) {
+                    console.error("Lỗi khi cập nhật số lượng giỏ hàng từ API:", error);
+                }
+            } else {
+                // Người dùng chưa đăng nhập, đọc từ localStorage
+                const localCart = JSON.parse(localStorage.getItem('anonymousCart')) || [];
+                itemCount = localCart.reduce((total, item) => total + item.quantity, 0); // Đếm tổng số lượng sản phẩm
+                 // Hoặc nếu chỉ muốn đếm số loại sản phẩm: itemCount = localCart.length;
+            }
+            
+            cartItemCountElement.textContent = itemCount;
+            cartItemCountElement.style.display = itemCount > 0 ? 'inline-block' : 'none';
+        }
+
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateNavBasedOnLogin();
+            updateCartBadge(); // Cập nhật số lượng khi tải trang
+
+            const logoutButton = document.getElementById('logout-button');
+            if (logoutButton) {
+                logoutButton.addEventListener('click', function() {
+                    localStorage.removeItem('accessToken');
+                    localStorage.removeItem('currentUser'); // Xóa thông tin người dùng nếu có
+                    updateNavBasedOnLogin();
+                    updateCartBadge(); // Cập nhật badge sau khi đăng xuất
+                    window.location.href = "{{ url_for('home_page') }}";
+                });
+            }
+            
+            // Lắng nghe sự kiện cartUpdated để cập nhật badge
+            window.addEventListener('cartUpdated', updateCartBadge);
+        });
+
+        // Thêm sự kiện tùy chỉnh để thông báo cập nhật giỏ hàng
+        function dispatchCartUpdatedEvent() {
+            window.dispatchEvent(new CustomEvent('cartUpdated'));
+        }
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html> 

@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block title %}Thanh toán - Cửa hàng Thể thao{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Tiến hành Thanh toán</h2>
+    <div class="row">
+        <div class="col-md-7">
+            <h4>Thông tin giao hàng</h4>
+            <form id="checkout-form">
+                <div class="mb-3">
+                    <label for="fullName" class="form-label">Họ và tên <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="fullName" required>
+                </div>
+                <div class="mb-3">
+                    <label for="address" class="form-label">Địa chỉ <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="address" required>
+                </div>
+                <div class="mb-3">
+                    <label for="phone" class="form-label">Số điện thoại <span class="text-danger">*</span></label>
+                    <input type="tel" class="form-control" id="phone" required>
+                </div>
+                <div class="mb-3">
+                    <label for="notes" class="form-label">Ghi chú (tùy chọn)</label>
+                    <textarea class="form-control" id="notes" rows="3"></textarea>
+                </div>
+                
+                <hr class="my-4">
+
+                <h4>Phương thức thanh toán</h4>
+                <div class="my-3">
+                    <div class="form-check">
+                        <input id="cod" name="paymentMethod" type="radio" class="form-check-input" checked required>
+                        <label class="form-check-label" for="cod">Thanh toán khi nhận hàng (COD)</label>
+                    </div>
+                    <!-- Thêm các phương thức thanh toán khác ở đây nếu cần -->
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg">Đặt hàng</button>
+            </form>
+        </div>
+        <div class="col-md-5">
+            <h4>Tóm tắt đơn hàng</h4>
+            <ul class="list-group mb-3" id="order-summary-items">
+                <!-- Các mặt hàng sẽ được tải ở đây bằng JavaScript -->
+            </ul>
+            <div id="order-summary-empty" class="alert alert-warning" style="display: none;">
+                Giỏ hàng của bạn trống. Vui lòng <a href="{{ url_for('products_page') }}">thêm sản phẩm</a> trước khi thanh toán.
+            </div>
+            <h4 class="d-flex justify-content-between align-items-center mb-3">
+                <span class="text-primary">Tổng cộng</span>
+                <strong id="order-total-price">0 VND</strong>
+            </h4>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+    const token = localStorage.getItem('accessToken');
+    const orderSummaryItemsContainer = document.getElementById('order-summary-items');
+    const orderTotalPriceElement = document.getElementById('order-total-price');
+    const checkoutForm = document.getElementById('checkout-form');
+    const orderSummaryEmptyMessage = document.getElementById('order-summary-empty');
+
+    // Input fields for pre-filling
+    const fullNameInput = document.getElementById('fullName');
+    const addressInput = document.getElementById('address');
+    const phoneInput = document.getElementById('phone');
+
+    if (!token) {
+        alert('Vui lòng đăng nhập để tiếp tục thanh toán.');
+        localStorage.setItem('checkoutRedirectUrl', window.location.pathname + window.location.search);
+        window.location.href = "{{ url_for('login_page') }}";
+        return;
+    }
+
+    async function fetchUserProfile() {
+        try {
+            const response = await fetch('/api/v1/auth/me', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) {
+                if (response.status === 401) { // Token expired or invalid
+                    localStorage.removeItem('accessToken');
+                    alert('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+                    window.location.href = "{{ url_for('login_page') }}";
+                }
+                throw new Error('Không thể tải thông tin người dùng.');
+            }
+            const user = await response.json();
+            if (user) {
+                if (user.full_name) fullNameInput.value = user.full_name;
+                if (user.address) addressInput.value = user.address;
+                if (user.phone) phoneInput.value = user.phone;
+            }
+        } catch (error) {
+            console.error('Lỗi khi tải thông tin người dùng:', error);
+            // Optionally, notify user that profile info couldn't be loaded
+        }
+    }
+
+    const localCartToMerge = JSON.parse(localStorage.getItem('anonymousCart')) || [];
+    if (localCartToMerge.length > 0) {
+        // Logic hợp nhất giỏ hàng ẩn danh đã được xử lý ở trang đăng nhập.
+        // console.log("Giỏ hàng tạm thời có thể đã được hợp nhất sau khi đăng nhập.");
+    }
+
+    async function fetchCartForSummary() {
+        try {
+            const response = await fetch('/api/v1/orders/cart', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) {
+                if (response.status === 401) {
+                    localStorage.removeItem('accessToken');
+                    window.location.href = "{{ url_for('login_page') }}";
+                }
+                throw new Error('Không thể tải thông tin giỏ hàng.');
+            }
+            const cartData = await response.json();
+            displayOrderSummary(cartData.items || []);
+        } catch (error) {
+            console.error('Lỗi khi tải tóm tắt đơn hàng:', error);
+            orderSummaryItemsContainer.innerHTML = '<li class="list-group-item text-danger">Lỗi tải tóm tắt đơn hàng.</li>';
+        }
+    }
+
+    function displayOrderSummary(items) {
+        orderSummaryItemsContainer.innerHTML = '';
+        let total = 0;
+        if (!items || items.length === 0) {
+            orderSummaryEmptyMessage.style.display = 'block';
+            checkoutForm.querySelector('button[type="submit"]').disabled = true;
+            return;
+        }
+        orderSummaryEmptyMessage.style.display = 'none';
+        checkoutForm.querySelector('button[type="submit"]').disabled = false;
+
+        items.forEach(item => {
+            const product = item.product;
+            if (!product) return;
+            const listItem = document.createElement('li');
+            listItem.className = 'list-group-item d-flex justify-content-between lh-sm';
+            listItem.innerHTML = `
+                <div>
+                    <h6 class="my-0">${product.name} (x${item.quantity})</h6>
+                    <small class="text-muted">Giá: ${product.price.toLocaleString('vi-VN')} VND</small>
+                </div>
+                <span class="text-muted">${(product.price * item.quantity).toLocaleString('vi-VN')} VND</span>
+            `;
+            orderSummaryItemsContainer.appendChild(listItem);
+            total += product.price * item.quantity;
+        });
+        orderTotalPriceElement.textContent = total.toLocaleString('vi-VN') + ' VND';
+    }
+
+    checkoutForm.addEventListener('submit', async function(event) {
+        event.preventDefault();
+        
+        const orderData = {
+            recipient_name: fullNameInput.value,
+            shipping_address: addressInput.value,
+            phone: phoneInput.value,
+            payment_method: document.querySelector('input[name="paymentMethod"]:checked').id,
+            notes: document.getElementById('notes').value
+        };
+
+        try {
+            const response = await fetch('/api/v1/orders/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(orderData)
+            });
+
+            if (!response.ok) {
+                const errorResult = await response.json();
+                let detailMessage = 'Không thể đặt hàng.';
+                if (errorResult.detail) {
+                    if (typeof errorResult.detail === 'string') {
+                        detailMessage = errorResult.detail;
+                    } else if (Array.isArray(errorResult.detail)) {
+                        detailMessage = errorResult.detail.map(err => `${err.loc.join(' -> ')}: ${err.msg}`).join('\n');
+                    } else if (typeof errorResult.detail === 'object') {
+                        detailMessage = JSON.stringify(errorResult.detail);
+                    }
+                }
+                throw new Error(detailMessage);
+            }
+
+            const createdOrder = await response.json();
+            alert('Đặt hàng thành công! Mã đơn hàng của bạn là: ' + createdOrder.id);
+            
+            if (typeof dispatchCartUpdatedEvent === 'function') {
+                dispatchCartUpdatedEvent(); 
+            }
+            // Chuyển hướng đến trang xác nhận đơn hàng
+            window.location.href = "{{ url_for('order_confirmation_page', order_id='ORDER_ID_PLACEHOLDER') }}".replace('ORDER_ID_PLACEHOLDER', createdOrder.id);
+
+        } catch (error) {
+            console.error('Lỗi khi đặt hàng:', error);
+            alert('Lỗi khi đặt hàng: ' + error.message);
+        }
+    });
+
+    // Fetch user profile and cart summary when page loads
+    await fetchUserProfile(); // Đợi thông tin user được tải xong trước khi tải giỏ hàng
+    await fetchCartForSummary();
+});
+</script>
+{% endblock %} 

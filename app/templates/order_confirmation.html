@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Xác nhận đơn hàng - Cửa hàng Thể thao{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="alert alert-success" role="alert">
+        <h4 class="alert-heading">Đặt hàng thành công!</h4>
+        <p>Cảm ơn bạn đã mua hàng tại Cửa hàng Thể thao. Đơn hàng của bạn đã được ghi nhận.</p>
+        <hr>
+        <p class="mb-0">Mã đơn hàng của bạn là: <strong id="order-id-placeholder">Đang tải...</strong></p>
+    </div>
+    <p>Bạn có thể xem chi tiết đơn hàng trong <a href="{{ url_for('order_history_page') }}">lịch sử mua hàng</a> của mình.</p>
+    <a href="{{ url_for('products_page') }}" class="btn btn-primary">Tiếp tục mua sắm</a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const orderIdPlaceholder = document.getElementById('order-id-placeholder');
+        // Lấy order_id từ URL path
+        const pathParts = window.location.pathname.split('/');
+        const orderId = pathParts[pathParts.length - 1];
+
+        if (orderId && orderIdPlaceholder) {
+            orderIdPlaceholder.textContent = orderId;
+        } else {
+            orderIdPlaceholder.textContent = "Không có thông tin";
+            console.warn("Không tìm thấy order_id trên URL hoặc không tìm thấy placeholder.");
+        }
+        
+        // Giả sử API tạo đơn hàng đã xóa giỏ hàng
+        // Nếu không, có thể cần gọi API xóa giỏ hàng ở đây
+        // và sau đó cập nhật badge
+        if (typeof dispatchCartUpdatedEvent === 'function') {
+            dispatchCartUpdatedEvent();
+        }
+    });
+</script>
+{% endblock %} 

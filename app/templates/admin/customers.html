@@ -1,0 +1,96 @@
+{% extends "admin/layout.html" %}
+
+{% block title %}Quản Lý Khách Hàng{% endblock %}
+
+{% block head_extra %}
+<style>
+    /* Action button styles are now in layout.html */
+    .status-active {
+        color: #28a745; /* Green for active */
+        font-weight: bold;
+    }
+    .status-inactive {
+        color: #dc3545; /* Red for inactive */
+        font-weight: bold;
+    }
+    .actions form {
+        display: inline-block;
+        margin-left: 5px;
+    }
+    .actions .activate-btn {
+        background-color: #28a745; 
+        color:white; 
+        border:none; 
+        padding: 5px 10px; 
+        border-radius:3px;
+        cursor:pointer;
+    }
+    .actions .deactivate-btn {
+        background-color: #ffc107; 
+        color:black; 
+        border:none; 
+        padding: 5px 10px; 
+        border-radius:3px;
+        cursor:pointer;
+    }
+</style>
+{% endblock %}
+
+{% block page_title %}Quản Lý Khách Hàng{% endblock %}
+
+{% block content %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="table-container">
+        {% if customers %}
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Tên Đăng Nhập</th>
+                    <th>Email</th>
+                    <th>Họ Tên</th>
+                    <th>Điện Thoại</th>
+                    <th>Ngày Tạo</th>
+                    <th>Trạng Thái</th>
+                    <th class="actions">Hành Động</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for customer in customers %}
+                <tr>
+                    <td>{{ customer.id }}</td>
+                    <td>{{ customer.username }}</td>
+                    <td>{{ customer.email if customer.email else '-' }}</td>
+                    <td>{{ customer.full_name if customer.full_name else '-' }}</td>
+                    <td>{{ customer.phone if customer.phone else '-' }}</td>
+                    <td>{{ customer.created_at.strftime('%Y-%m-%d %H:%M:%S') if customer.created_at else 'N/A' }}</td>
+                    <td>
+                        <span class="status-{{ 'active' if customer.is_active else 'inactive' }}">
+                            {{ "Hoạt động" if customer.is_active else "Ngừng hoạt động" }}
+                        </span>
+                    </td>
+                    <td class="actions">
+                        <form action="{{ url_for('admin_customers.toggle_customer_active', user_id=customer.id) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn thay đổi trạng thái tài khoản này?')">
+                            {% if customer.is_active %}
+                                <button type="submit" class="deactivate-btn">Ngừng Hoạt Động</button>
+                            {% else %}
+                                <button type="submit" class="activate-btn">Kích Hoạt</button>
+                            {% endif %}
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p>Không có khách hàng nào.</p>
+        {% endif %}
+    </div>
+{% endblock %} 

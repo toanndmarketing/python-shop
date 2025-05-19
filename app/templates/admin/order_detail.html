@@ -1,0 +1,118 @@
+{% extends "admin/layout.html" %}
+
+{% block title %}Chi Tiết Đơn Hàng #{{ order.order_number }}{% endblock %}
+
+{% block head_extra %}
+<style>
+    .order-details-container, .customer-details-container, .shipping-details-container, .order-items-container, .update-status-container {
+        background-color: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.05); margin-bottom: 25px;
+    }
+    h2.section-title { font-size: 1.4em; color: #333; margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+    .detail-item { margin-bottom: 12px; font-size: 0.95em; }
+    .detail-item strong { color: #555; min-width: 180px; display: inline-block; }
+    table.order-items-table {
+        width: 100%; border-collapse: collapse; margin-top: 15px;
+    }
+    .order-items-table th, .order-items-table td {
+        border: 1px solid #dee2e6; padding: 10px; text-align: left;
+    }
+    .order-items-table th { background-color: #e9ecef; font-size: 0.9em; }
+    .order-items-table td { font-size: 0.9em; }
+    .order-items-table .item-image { max-width: 50px; max-height: 50px; object-fit: cover; border-radius: 3px; margin-right:10px; }
+    .total-amount { font-size: 1.2em; font-weight: bold; color: #007bff; text-align:right; margin-top:15px; }
+    /* Styles for form elements are now in layout.html, keeping specific ones if needed */
+</style>
+{% endblock %}
+
+{% block page_title %}Chi Tiết Đơn Hàng #{{ order.order_number }}{% endblock %}
+
+{% block header_actions %}
+    <a href="{{ url_for('admin_orders.list_orders') }}" class="back-link">&laquo; Quay lại Danh sách Đơn Hàng</a>
+{% endblock %}
+
+{% block content %}
+    <div class="order-details-container">
+        <h2 class="section-title">Thông Tin Chung</h2>
+        <div class="detail-item"><strong>ID Đơn Hàng:</strong> {{ order.id }}</div>
+        <div class="detail-item"><strong>Mã Đơn Hàng:</strong> {{ order.order_number }}</div>
+        <div class="detail-item"><strong>Ngày Đặt:</strong> {{ order.created_at.strftime('%Y-%m-%d %H:%M:%S') if order.created_at else 'N/A' }}</div>
+        <div class="detail-item"><strong>Trạng Thái Hiện Tại:</strong> <span class="status-{{ order.status.name|lower }}">{{ available_statuses[order.status] }}</span></div>
+        <div class="detail-item"><strong>Phương Thức Thanh Toán:</strong> {{ order.payment_method|upper if order.payment_method else 'N/A' }}</div>
+        <div class="detail-item"><strong>Trạng Thái Thanh Toán:</strong> {{ order.payment_status|title if order.payment_status else 'N/A' }}</div>
+        <div class="detail-item"><strong>Ghi Chú:</strong> {{ order.notes if order.notes else 'Không có' }}</div>
+    </div>
+
+    {% if order.user %}
+    <div class="customer-details-container">
+        <h2 class="section-title">Thông Tin Khách Hàng</h2>
+        <div class="detail-item"><strong>ID Khách Hàng:</strong> {{ order.user.id }}</div>
+        <div class="detail-item"><strong>Tên Đăng Nhập:</strong> {{ order.user.username }}</div>
+        <div class="detail-item"><strong>Họ Tên:</strong> {{ order.user.full_name if order.user.full_name else 'Chưa cập nhật' }}</div>
+        <div class="detail-item"><strong>Email:</strong> {{ order.user.email if order.user.email else 'Chưa cập nhật' }}</div>
+        <div class="detail-item"><strong>Số Điện Thoại:</strong> {{ order.phone if order.phone else (order.user.phone if order.user.phone else 'Chưa cập nhật') }}</div>
+    </div>
+    {% endif %}
+
+    <div class="shipping-details-container">
+        <h2 class="section-title">Địa Chỉ Giao Hàng</h2>
+        <div class="detail-item"><strong>Người Nhận:</strong> {{ order.recipient_name if order.recipient_name else (order.user.full_name if order.user else 'N/A') }}</div>
+        <div class="detail-item"><strong>Địa Chỉ:</strong> {{ order.shipping_address if order.shipping_address else (order.user.address if order.user else 'N/A') }}</div>
+        <div class="detail-item"><strong>Số Điện Thoại:</strong> {{ order.phone if order.phone else (order.user.phone if order.user else 'N/A') }}</div>
+    </div>
+
+    <div class="order-items-container">
+        <h2 class="section-title">Các Sản Phẩm Trong Đơn</h2>
+        {% if order.items %}
+            <table class="order-items-table">
+                <thead>
+                    <tr>
+                        <th>Ảnh</th>
+                        <th>Sản Phẩm</th>
+                        <th>Số Lượng</th>
+                        <th>Đơn Giá</th>
+                        <th>Thành Tiền</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in order.items %}
+                    <tr>
+                        <td>
+                            {% if item.product and item.product.image_url %}
+                                <img src="{{ item.product.image_url if item.product.image_url.startswith('http') else url_for('static', path='images/' + item.product.image_url) }}" alt="{{ item.product.name }}" class="item-image">
+                            {% else %}
+                                (Không có ảnh)
+                            {% endif %}
+                        </td>
+                        <td>{{ item.product.name if item.product else 'Sản phẩm không tồn tại' }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>{{ "%.0f"|format(item.price) }} đ</td>
+                        <td>{{ "%.0f"|format(item.quantity * item.price) }} đ</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="total-amount">Tổng Cộng: {{ "%.0f"|format(order.total_amount) }} đ</div>
+        {% else %}
+            <p>Đơn hàng này không có sản phẩm nào.</p>
+        {% endif %}
+    </div>
+
+    <div class="update-status-container form-container">
+        <h2 class="section-title">Cập Nhật Trạng Thái Đơn Hàng</h2>
+        <form method="post" action="{{ url_for('admin_orders.update_order_status', order_id=order.id) }}">
+            <div class="form-group">
+                <label for="status">Trạng Thái Mới:</label>
+                <select id="status" name="status">
+                    {% for status_key, status_display in available_statuses.items() %}
+                        <option value="{{ status_key.name }}" {{ 'selected' if order.status == status_key else '' }}>
+                            {{ status_display }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <button type="submit" class="btn-primary">Cập Nhật Trạng Thái</button>
+            </div>
+        </form>
+    </div>
+{% endblock %} 

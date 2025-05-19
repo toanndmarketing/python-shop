@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Đăng nhập - Sports Shop{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Đăng nhập</h3>
+                </div>
+                <div class="card-body">
+                    <form id="loginForm" action="/api/v1/auth/login" method="post"> <!-- Action will be handled by JS or API direct call -->
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Tên đăng nhập hoặc Email</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Mật khẩu</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Đăng nhập</button>
+                        </div>
+                        <p class="mt-3 text-center">
+                            Chưa có tài khoản? <a href="{{ url_for('register_page') }}">Đăng ký ngay</a>
+                        </p>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Basic JS for form submission if needed, or rely on default form action to API endpoint
+// More advanced: Use JS to submit to API, handle token, redirect
+document.getElementById('loginForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    // Convert FormData to a URL-encoded string for OAuth2PasswordRequestForm
+    const data = new URLSearchParams();
+    for (const pair of formData) {
+        data.append(pair[0], pair[1]);
+    }
+
+    try {
+        const response = await fetch('/api/v1/auth/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: data,
+        });
+        const result = await response.json();
+        if (response.ok) {
+            localStorage.setItem('accessToken', result.access_token);
+            //localStorage.setItem('currentUser', JSON.stringify(result.user)); // If user info is returned
+            alert('Đăng nhập thành công!');
+
+            // Hợp nhất giỏ hàng từ localStorage nếu có
+            const localCart = JSON.parse(localStorage.getItem('anonymousCart')) || [];
+            if (localCart.length > 0) {
+                try {
+                    for (const item of localCart) {
+                        // Gọi API để thêm từng mục vào giỏ hàng của người dùng đã đăng nhập
+                        // Đây là cách làm đơn giản, một API hợp nhất hàng loạt sẽ hiệu quả hơn
+                        await fetch('/api/v1/orders/cart/items', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${result.access_token}`
+                            },
+                            body: JSON.stringify({ product_id: item.product_id, quantity: item.quantity })
+                        });
+                        // Không cần kiểm tra response ở đây vì mục tiêu là cố gắng thêm
+                    }
+                    localStorage.removeItem('anonymousCart'); // Xóa giỏ hàng tạm
+                    if (typeof dispatchCartUpdatedEvent === 'function') dispatchCartUpdatedEvent();
+                    alert('Giỏ hàng tạm thời của bạn đã được cập nhật vào tài khoản.');
+                } catch (mergeError) {
+                    console.error("Lỗi khi hợp nhất giỏ hàng tạm thời:", mergeError);
+                    alert("Đã xảy ra lỗi khi cập nhật giỏ hàng từ phiên trước của bạn. Vui lòng kiểm tra lại giỏ hàng.");
+                }
+            }
+
+            // Kiểm tra xem có URL chuyển hướng từ trang thanh toán/giỏ hàng không
+            const checkoutRedirectUrl = localStorage.getItem('checkoutRedirectUrl');
+            if (checkoutRedirectUrl) {
+                localStorage.removeItem('checkoutRedirectUrl');
+                window.location.href = checkoutRedirectUrl;
+            } else {
+                window.location.href = "{{ url_for('home_page') }}"; // Hoặc profile_page
+            }
+        } else {
+            alert('Lỗi: ' + (result.detail || 'Tên đăng nhập hoặc mật khẩu không đúng.'));
+        }
+    } catch (error) {
+        console.error('Login error:', error);
+        alert('Đã có lỗi xảy ra trong quá trình đăng nhập.');
+    }
+});
+</script>
+{% endblock %} 

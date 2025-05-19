@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - {% block title %}{% endblock %}</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; background-color: #f8f9fa; }
+        .sidebar { width: 250px; background-color: #343a40; color: white; height: 100vh; position: fixed; padding-top: 20px; }
+        .sidebar h2 { text-align: center; margin-bottom: 30px; }
+        .sidebar a { display: block; color: #adb5bd; padding: 10px 20px; text-decoration: none; }
+        .sidebar a:hover, .sidebar a.active { background-color: #495057; color: white; }
+        .main-content { margin-left: 260px; padding: 20px; }
+        .header { background-color: #fff; padding: 15px 20px; border-bottom: 1px solid #dee2e6; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { margin: 0; font-size: 1.8em; }
+        /* Common styles for admin pages - can be extended in specific pages */
+        .table-container { background-color: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.05); margin-bottom: 25px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #dee2e6; padding: 10px; text-align: left; font-size: 0.9em;}
+        th { background-color: #e9ecef; }
+        .actions a, .actions button { margin-right: 5px; text-decoration: none; padding: 5px 10px; border-radius: 3px; font-size: 0.85em; }
+        .actions .edit-btn { background-color: #ffc107; color: black; }
+        .actions .delete-btn { background-color: #dc3545; color: white; border: none; cursor:pointer; }
+        .actions .view-btn { background-color: #17a2b8; color: white; }
+        .btn-primary { background-color: #007bff; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; border:none; cursor:pointer; }
+        .btn-primary:hover { background-color: #0056b3; }
+        .form-container { background-color: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.05); margin-bottom: 25px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input[type="text"], .form-group input[type="email"], .form-group input[type="password"], .form-group input[type="number"], .form-group textarea, .form-group select {
+            width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #ced4da; box-sizing: border-box;
+        }
+        .form-group textarea { min-height: 100px; }
+        .alert { padding: 15px; margin-bottom: 20px; border: 1px solid transparent; border-radius: 4px; }
+        .alert-success { color: #155724; background-color: #d4edda; border-color: #c3e6cb; }
+        .alert-danger { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; }
+        .status-pending { color: #ffc107; font-weight: bold; }
+        .status-processing { color: #17a2b8; font-weight: bold; }
+        .status-shipped { color: #28a745; font-weight: bold; }
+        .status-delivered { color: #20c997; font-weight: bold; }
+        .status-cancelled { color: #dc3545; font-weight: bold; }
+        .status-active { color: #28a745; font-weight: bold; }
+        .status-inactive { color: #dc3545; font-weight: bold; }
+        .back-link { color: #007bff; text-decoration: none; margin-bottom:15px; display:inline-block;}
+        .back-link:hover { text-decoration: underline; }
+        .page-title { margin: 0; font-size: 1.8em; }
+    </style>
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Trang Quản Trị</h2>
+        <a href="/admin/dashboard" class="{{ 'active' if active_page == 'dashboard' else '' }}">Bảng Điều Khiển</a>
+        <a href="/admin/products" class="{{ 'active' if active_page == 'products' else '' }}">Sản Phẩm</a>
+        <a href="/admin/orders" class="{{ 'active' if active_page == 'orders' else '' }}">Đơn Hàng</a>
+        <a href="/admin/customers" class="{{ 'active' if active_page == 'customers' else '' }}">Khách Hàng</a>
+        <a href="/admin/logout">Đăng Xuất</a>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
+            {% block header_actions %}{% endblock %}
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+    {% block scripts %}{% endblock %}
+</body>
+</html> 

@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}Sản phẩm - Sports Shop{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <h2>Tất cả sản phẩm</h2>
+        </div>
+        <div class="col-md-4">
+            <form id="filterSortForm" class="d-flex align-items-center">
+                <div class="me-2 flex-grow-1">
+                    <select class="form-select" id="categoryFilter" name="category_id">
+                        <option value="">Tất cả danh mục</option>
+                        <!-- Categories will be loaded here by JS -->
+                    </select>
+                </div>
+                <div class="me-2 flex-grow-1">
+                    <input type="text" class="form-control" id="searchProduct" name="search" placeholder="Tìm kiếm sản phẩm...">
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-info">Lọc</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row" id="productList">
+        <!-- Products will be loaded here by JS -->
+    </div>
+
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center" id="paginationControls">
+            <!-- Pagination will be loaded here by JS -->
+        </ul>
+    </nav>
+</div>
+
+<script>
+let currentPage = 1;
+const productsPerPage = 9; // Or get from config
+
+async function fetchCategories() {
+    try {
+        // Assuming you will create a categories API endpoint
+        const response = await fetch('/api/v1/products/categories'); 
+        if (!response.ok) throw new Error('Failed to fetch categories');
+        const categories = await response.json();
+        const categoryFilter = document.getElementById('categoryFilter');
+        categories.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat.id;
+            option.textContent = cat.name;
+            categoryFilter.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error fetching categories:', error);
+    }
+}
+
+async function fetchProducts(page = 1, category_id = '', search = '') {
+    let url = `/api/v1/products/?skip=${(page - 1) * productsPerPage}&limit=${productsPerPage}`;
+    if (category_id) url += `&category_id=${category_id}`;
+    if (search) url += `&search=${search}`;
+
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Failed to fetch products');
+        const data = await response.json();
+        const productListDiv = document.getElementById('productList');
+        productListDiv.innerHTML = ''; // Clear previous products
+
+        if (data.items && data.items.length > 0) {
+            data.items.forEach(product => {
+                const productCard = `
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100 product-card">
+                            <a href="/products/${product.id}">
+                                <img src="${product.image_url || 'https://placehold.co/600x400/EFEFEF/AAAAAA?text=No+Image'}" class="card-img-top" alt="${product.name}">
+                            </a>
+                            <div class="card-body d-flex flex-column">
+                                <h5 class="card-title"><a href="/products/${product.id}" class="text-decoration-none text-dark">${product.name}</a></h5>
+                                <p class="card-text flex-grow-1">${product.description.substring(0,100)}...</p>
+                                <p class="card-text"><strong>Giá: ${product.price.toLocaleString('vi-VN')} VNĐ</strong></p>
+                                <button class="btn btn-primary mt-auto add-to-cart-btn" data-product-id="${product.id}">Thêm vào giỏ</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                productListDiv.innerHTML += productCard;
+            });
+        } else {
+            productListDiv.innerHTML = '<p class="text-center">Không tìm thấy sản phẩm nào.</p>';
+        }
+        setupAddToCartButtons();
+        renderPagination(data.total, page, data.pages);
+    } catch (error) {
+        console.error('Error fetching products:', error);
+        document.getElementById('productList').innerHTML = '<p class="text-center text-danger">Lỗi khi tải sản phẩm.</p>';
+    }
+}
+
+function renderPagination(totalItems, currentPage, totalPages) {
+    const paginationControls = document.getElementById('paginationControls');
+    paginationControls.innerHTML = '';
+
+    if (totalPages <= 1) return;
+
+    // Previous button
+    let prevDisabled = currentPage === 1 ? "disabled" : "";
+    paginationControls.innerHTML += `<li class="page-item ${prevDisabled}"><a class="page-link" href="#" onclick="changePage(${currentPage - 1})">Trước</a></li>`;
+
+    for (let i = 1; i <= totalPages; i++) {
+        let activeClass = i === currentPage ? "active" : "";
+        paginationControls.innerHTML += `<li class="page-item ${activeClass}"><a class="page-link" href="#" onclick="changePage(${i})">${i}</a></li>`;
+    }
+
+    // Next button
+    let nextDisabled = currentPage === totalPages ? "disabled" : "";
+    paginationControls.innerHTML += `<li class="page-item ${nextDisabled}"><a class="page-link" href="#" onclick="changePage(${currentPage + 1})">Sau</a></li>`;
+}
+
+function changePage(page) {
+    const category_id = document.getElementById('categoryFilter').value;
+    const search = document.getElementById('searchProduct').value;
+    fetchProducts(page, category_id, search);
+}
+
+document.getElementById('filterSortForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const category_id = document.getElementById('categoryFilter').value;
+    const search = document.getElementById('searchProduct').value;
+    currentPage = 1; // Reset to first page on new filter/search
+    fetchProducts(currentPage, category_id, search);
+});
+
+function setupAddToCartButtons() {
+    document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+        button.addEventListener('click', async function() {
+            const productId = parseInt(this.dataset.productId);
+            const token = localStorage.getItem('accessToken');
+            
+            if (token) {
+                // Người dùng đã đăng nhập, gọi API
+                try {
+                    const response = await fetch('/api/v1/orders/cart/items', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ product_id: productId, quantity: 1 })
+                    });
+                    const result = await response.json();
+                    if (response.ok) {
+                        alert('Đã thêm sản phẩm vào giỏ hàng!');
+                        if (typeof dispatchCartUpdatedEvent === 'function') {
+                            dispatchCartUpdatedEvent();
+                        }
+                    } else {
+                        alert('Lỗi khi thêm vào giỏ hàng: ' + (result.detail || 'Không thể thêm vào giỏ hàng.'));
+                    }
+                } catch (error) {
+                    console.error('Add to cart API error:', error);
+                    alert('Đã xảy ra lỗi khi kết nối máy chủ.');
+                }
+            } else {
+                // Người dùng chưa đăng nhập, lưu vào localStorage
+                let localCart = JSON.parse(localStorage.getItem('anonymousCart')) || [];
+                const existingItemIndex = localCart.findIndex(item => item.product_id === productId);
+
+                if (existingItemIndex > -1) {
+                    localCart[existingItemIndex].quantity += 1;
+                } else {
+                    localCart.push({ product_id: productId, quantity: 1 });
+                }
+                localStorage.setItem('anonymousCart', JSON.stringify(localCart));
+                alert('Đã thêm sản phẩm vào giỏ hàng tạm thời!');
+                if (typeof dispatchCartUpdatedEvent === 'function') {
+                    dispatchCartUpdatedEvent(); // Cập nhật badge
+                }
+            }
+        });
+    });
+}
+
+window.onload = () => {
+    fetchCategories();
+    fetchProducts(); // Initial load
+};
+</script>
+{% endblock %} 

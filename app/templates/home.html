@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Trang chủ - Cửa hàng Thể thao{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Hero Section -->
+    <div class="p-5 mb-4 bg-light rounded-3">
+        <div class="container-fluid py-5">
+            <h1 class="display-5 fw-bold">Chào mừng đến với Cửa hàng Thể thao</h1>
+            <p class="col-md-8 fs-4">Khám phá bộ sưu tập đồ thể thao chất lượng cao của chúng tôi.</p>
+            <a href="{{ url_for('products_page') }}" class="btn btn-primary btn-lg">Xem sản phẩm</a>
+        </div>
+    </div>
+
+    <!-- Featured Categories -->
+    <h2 class="text-center mb-4">Danh mục nổi bật</h2>
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card h-100">
+                <img src="https://placehold.co/300x200/EFEFEF/AAAAAA?text=Quần+áo" class="card-img-top" alt="Quần áo thể thao">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">Quần áo thể thao</h5>
+                    <p class="card-text">Bộ sưu tập quần áo thể thao đa dạng, chất lượng cao.</p>
+                    <a href="{{ url_for('products_page') }}?category_id=1" class="btn btn-outline-primary mt-auto">Xem thêm</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <img src="https://placehold.co/300x200/EFEFEF/AAAAAA?text=Giày" class="card-img-top" alt="Giày thể thao">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">Giày thể thao</h5>
+                    <p class="card-text">Giày thể thao chính hãng từ các thương hiệu nổi tiếng.</p>
+                    <a href="{{ url_for('products_page') }}?category_id=2" class="btn btn-outline-primary mt-auto">Xem thêm</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <img src="https://placehold.co/300x200/EFEFEF/AAAAAA?text=Phụ+kiện" class="card-img-top" alt="Phụ kiện thể thao">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">Phụ kiện thể thao</h5>
+                    <p class="card-text">Các phụ kiện thể thao cần thiết cho mọi hoạt động.</p>
+                    <a href="{{ url_for('products_page') }}?category_id=3" class="btn btn-outline-primary mt-auto">Xem thêm</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Featured Products -->
+    <h2 class="text-center my-5">Sản phẩm nổi bật</h2>
+    <div class="row g-4">
+        {% if featured_products %}
+            {% for product in featured_products %}
+            <div class="col-md-4">
+                <div class="card h-100 product-card">
+                    <a href="{{ url_for('products_page') }}?product_id={{product.id}}"> 
+                        <img src="{{ product.image_url or 'https://placehold.co/600x400/EFEFEF/AAAAAA?text=No+Image' }}" class="card-img-top" alt="{{ product.name }}" style="height: 200px; object-fit: cover;">
+                    </a>
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title"><a href="{{ url_for('products_page') }}?product_id={{product.id}}" class="text-decoration-none text-dark">{{ product.name }}</a></h5>
+                        <p class="card-text flex-grow-1">{{ product.description[:100] if product.description else '' }}...</p>
+                        <p class="card-text product-price" data-price="{{ product.price }}"><strong>Giá: {{ product.price }} VNĐ</strong></p>
+                        <button class="btn btn-primary mt-auto add-to-cart-btn" data-product-id="{{ product.id }}">Thêm vào giỏ</button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-center">Không có sản phẩm nổi bật nào để hiển thị.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function setupAddToCartButtonsHomePage() {
+        document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+            button.addEventListener('click', async function() {
+                const productId = parseInt(this.dataset.productId);
+                const token = localStorage.getItem('accessToken');
+                
+                if (token) {
+                    // Người dùng đã đăng nhập, gọi API
+                    try {
+                        const response = await fetch('/api/v1/orders/cart/items', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ product_id: productId, quantity: 1 })
+                        });
+                        const result = await response.json();
+                        if (response.ok) {
+                            alert('Đã thêm sản phẩm vào giỏ hàng!');
+                            if (typeof dispatchCartUpdatedEvent === 'function') {
+                                dispatchCartUpdatedEvent();
+                            }
+                        } else {
+                            alert('Lỗi khi thêm vào giỏ hàng: ' + (result.detail || 'Không thể thêm vào giỏ hàng.'));
+                        }
+                    } catch (error) {
+                        console.error('Add to cart API error (homepage):', error);
+                        alert('Đã xảy ra lỗi khi kết nối máy chủ.');
+                    }
+                } else {
+                    // Người dùng chưa đăng nhập, lưu vào localStorage
+                    let localCart = JSON.parse(localStorage.getItem('anonymousCart')) || [];
+                    const existingItemIndex = localCart.findIndex(item => item.product_id === productId);
+
+                    if (existingItemIndex > -1) {
+                        localCart[existingItemIndex].quantity += 1;
+                    } else {
+                        localCart.push({ product_id: productId, quantity: 1 });
+                    }
+                    localStorage.setItem('anonymousCart', JSON.stringify(localCart));
+                    alert('Đã thêm sản phẩm vào giỏ hàng tạm thời!');
+                    if (typeof dispatchCartUpdatedEvent === 'function') {
+                        dispatchCartUpdatedEvent(); // Cập nhật badge
+                    }
+                }
+            });
+        });
+    }
+    setupAddToCartButtonsHomePage();
+
+    // Định dạng giá tiền cho sản phẩm nổi bật
+    document.querySelectorAll('.product-card .product-price').forEach(priceElement => {
+        const price = parseFloat(priceElement.dataset.price);
+        if (!isNaN(price)) {
+            priceElement.innerHTML = `<strong>Giá: ${price.toLocaleString('vi-VN')} VNĐ</strong>`;
+        }
+    });
+});
+</script>
+{% endblock %} 

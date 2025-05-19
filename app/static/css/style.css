@@ -1,0 +1,48 @@
+/* Custom styles */
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+.card {
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.navbar {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+footer {
+    margin-top: auto;
+}
+
+/* Product card styles */
+.product-card img {
+    height: 200px;
+    object-fit: cover;
+}
+
+/* Cart styles */
+.cart-item {
+    border-bottom: 1px solid #eee;
+    padding: 1rem 0;
+}
+
+/* Form styles */
+.form-container {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+} 

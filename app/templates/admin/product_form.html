@@ -1,0 +1,117 @@
+{% extends "admin/layout.html" %}
+
+{% set form_title = "Thêm Sản Phẩm Mới" if not product else "Chỉnh Sửa Sản Phẩm: " ~ product.name %}
+{% block title %}{{ form_title }}{% endblock %}
+
+{% block head_extra %}
+<style>
+    .form-image-preview {
+        max-width: 200px;
+        max-height: 200px;
+        margin-top: 10px;
+        border: 1px solid #ddd;
+        padding: 5px;
+        border-radius: 4px;
+    }
+    .form-group small {
+        font-size: 0.8em;
+        color: #6c757d;
+    }
+    /* Form group and button styles are in layout.html */
+</style>
+{% endblock %}
+
+{% block page_title %}{{ form_title }}{% endblock %}
+
+{% block header_actions %}
+    <a href="{{ url_for('admin_products.list_products') }}" class="back-link">&laquo; Quay lại Danh sách Sản phẩm</a>
+{% endblock %}
+
+{% block content %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% if error_messages %}
+        <div class="alert alert-danger">
+            <strong>Vui lòng sửa các lỗi sau:</strong>
+            <ul>
+                {% for field, errors in error_messages.items() %}
+                    {% for error in errors %}
+                        <li>{{ field|capitalize }}: {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <div class="form-container">
+        <form method="POST" enctype="multipart/form-data" action="{{ url_for(request.endpoint, product_id=product.id if product else None) }}">
+            {{ form.csrf_token if form and form.csrf_token }}
+            <div class="form-group">
+                <label for="name">Tên Sản Phẩm <span style="color:red;">*</span></label>
+                <input type="text" id="name" name="name" value="{{ product.name if product else request.form.name if request and request.form else '' }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Mô Tả</label>
+                <textarea id="description" name="description">{{ product.description if product else request.form.description if request and request.form else '' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="price">Giá (VNĐ) <span style="color:red;">*</span></label>
+                <input type="number" id="price" name="price" step="1000" value="{{ product.price if product else request.form.price if request and request.form else '' }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="stock_quantity">Số Lượng Tồn Kho <span style="color:red;">*</span></label>
+                <input type="number" id="stock_quantity" name="stock_quantity" value="{{ product.stock_quantity if product else request.form.stock_quantity if request and request.form else 0 }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="category_id">Danh Mục</label>
+                <select id="category_id" name="category_id">
+                    <option value="">-- Chọn Danh Mục --</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}" 
+                                {% if product and product.category_id == category.id %}selected{% endif %}
+                                {% if not product and request.form.category_id and request.form.category_id|int == category.id %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="image_upload">Tải Lên Ảnh Mới (nếu có)</label>
+                <input type="file" id="image_upload" name="image_upload" accept="image/*">
+                <small>Nếu bạn tải ảnh mới, ảnh này sẽ thay thế ảnh hiện tại (nếu có) hoặc ảnh từ URL bên dưới.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="image_url">Hoặc Nhập URL Ảnh</label>
+                <input type="text" id="image_url" name="image_url" value="{{ product.image_url if product and not product.image_url.startswith('products/') else request.form.image_url if request and request.form else '' }}">
+                <small>Ưu tiên ảnh tải lên nếu cả hai được cung cấp. Nếu ảnh hiện tại là ảnh đã tải lên (không phải URL), trường này sẽ trống.</small>
+            </div>
+
+            {% if product and product.image_url %}
+                <div class="form-group">
+                    <label>Ảnh Hiện Tại:</label>
+                    <img src="{{ product.image_url if product.image_url.startswith('http') else url_for('static', path='images/products/' + product.image_url) }}" 
+                         alt="Ảnh sản phẩm {{ product.name }}" class="form-image-preview">
+                    <br>
+                    <input type="checkbox" id="delete_current_image" name="delete_current_image" value="true">
+                    <label for="delete_current_image">Xóa ảnh hiện tại (áp dụng khi lưu và không tải ảnh mới/URL mới)</label>
+                </div>
+            {% endif %}
+
+            <div class="form-group">
+                <button type="submit" class="btn-primary">{{ "Lưu Thay Đổi" if product else "Thêm Sản Phẩm" }}</button>
+            </div>
+        </form>
+    </div>
+{% endblock %} 
