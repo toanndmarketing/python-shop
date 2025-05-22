@@ -45,7 +45,7 @@
         {% if product %}
         <form method="POST" enctype="multipart/form-data" action="{{ url_for('admin_update_product', product_id=product.id) }}">
         {% else %}
-        <form method="POST" enctype="multipart/form-data" action="{{ url_for('create_product') }}">
+        <form method="POST" enctype="multipart/form-data" action="{{ url_for('admin_create_product') }}">
         {% endif %}
             {{ form.csrf_token if form and form.csrf_token }}
             <div class="form-group">

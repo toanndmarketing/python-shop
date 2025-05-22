@@ -35,7 +35,7 @@ async def add_product_form(request: Request, db: Session = Depends(get_db)):
     categories = db.query(Category).order_by(Category.name).all()
     return TEMPLATES_ADMIN.TemplateResponse("product_form.html", {"request": request, "categories": categories, "product": None, "active_page": "products"})
 
-@router.post("/add", name="create_product")
+@router.post("/add", name="admin_create_product")
 async def add_product(
     request: Request,
     db: Session = Depends(get_db),
