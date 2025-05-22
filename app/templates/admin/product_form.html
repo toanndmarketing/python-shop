@@ -43,7 +43,7 @@
 
     <div class="form-container">
         {% if product %}
-        <form method="POST" enctype="multipart/form-data" action="{{ url_for('update_product', product_id=product.id) }}">
+        <form method="POST" enctype="multipart/form-data" action="{{ url_for('admin_update_product', product_id=product.id) }}">
         {% else %}
         <form method="POST" enctype="multipart/form-data" action="{{ url_for('create_product') }}">
         {% endif %}
@@ -65,7 +65,7 @@
 
             <div class="form-group">
                 <label for="stock_quantity">Số Lượng Tồn Kho <span style="color:red;">*</span></label>
-                <input type="number" id="stock_quantity" name="stock_quantity" value="{{ product.stock_quantity if product else request.form.stock_quantity if request and request.form else 0 }}" required>
+                <input type="number" id="stock_quantity" name="stock" value="{{ product.stock if product else request.form.stock if request and request.form else 0 }}" required>
             </div>
 
             <div class="form-group">
@@ -84,7 +84,7 @@
             
             <div class="form-group">
                 <label for="image_upload">Tải Lên Ảnh Mới (nếu có)</label>
-                <input type="file" id="image_upload" name="image_upload" accept="image/*">
+                <input type="file" id="image_upload" name="image" accept="image/*">
                 <small>Nếu bạn tải ảnh mới, ảnh này sẽ thay thế ảnh hiện tại (nếu có) hoặc ảnh từ URL bên dưới.</small>
             </div>
 

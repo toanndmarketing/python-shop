@@ -46,7 +46,7 @@
                     <td>{{ product.id }}</td>
                     <td>
                         {% if product.image_url %}
-                            <img src="{{ product.image_url if product.image_url.startswith('http') else url_for('static', path='images/products/' + product.image_url) }}" 
+                            <img src="{{ product.image_url }}" 
                                  alt="{{ product.name }}" class="product-image-thumbnail">
                         {% else %}
                             (Không có ảnh)

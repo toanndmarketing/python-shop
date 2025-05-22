@@ -90,7 +90,7 @@ async def edit_product_form(product_id: int, request: Request, db: Session = Dep
     categories = db.query(Category).order_by(Category.name).all()
     return TEMPLATES_ADMIN.TemplateResponse("product_form.html", {"request": request, "product": product, "categories": categories, "active_page": "products"})
 
-@router.post("/edit/{product_id}", name="update_product")
+@router.post("/edit/{product_id}", name="admin_update_product")
 async def edit_product(
     product_id: int,
     request: Request,
@@ -100,47 +100,62 @@ async def edit_product(
     price: float = Form(...),
     stock: int = Form(...),
     category_id: int = Form(...),
-    image_url: Optional[str] = Form(None),
-    current_image_url: Optional[str] = Form(None), # Hidden field for existing image
-    image: Optional[UploadFile] = File(None),
+    image_url: Optional[str] = Form(None), # URL ảnh mới từ form
+    image: Optional[UploadFile] = File(None), # File ảnh mới tải lên
+    delete_current_image: bool = Form(False), # Checkbox yêu cầu xóa ảnh hiện tại
     admin_user: dict = Depends(get_admin_user_or_redirect)
 ):
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Không tìm thấy sản phẩm")
 
-    final_image_url = product.image_url # Keep current image by default
+    final_image_url = product.image_url # Giữ ảnh hiện tại làm mặc định
 
-    if image and image.filename: # New image uploaded
-        # Delete old image if it exists and is a local file
-        if product.image_url and not product.image_url.startswith('http') and (STATIC_PATH.parent / product.image_url.lstrip('/')).exists():
+    # Xác định đường dẫn tới ảnh cục bộ cũ (nếu có)
+    old_local_image_path = None
+    if product.image_url and not product.image_url.startswith('http'):
+        # product.image_url được lưu dạng /static/images/products/filename.jpg
+        # STATIC_PATH.parent là thư mục 'app'
+        # product.image_url.lstrip('/') là 'static/images/products/filename.jpg'
+        # old_local_image_path sẽ là app/static/images/products/filename.jpg
+        old_local_image_path = STATIC_PATH.parent / product.image_url.lstrip('/')
+
+    if image and image.filename:  # 1. Ưu tiên ảnh mới tải lên
+        # Xóa ảnh cục bộ cũ nếu có
+        if old_local_image_path and old_local_image_path.exists():
             try:
-                (STATIC_PATH.parent / product.image_url.lstrip('/')).unlink()
+                old_local_image_path.unlink()
+                print(f"Đã xóa ảnh cũ (do tải ảnh mới): {old_local_image_path}")
             except OSError as e:
-                print(f"Lỗi xóa ảnh cũ: {e}") # Log error
+                print(f"Lỗi xóa ảnh cũ (khi tải ảnh mới): {e}")
         
         file_extension = Path(image.filename).suffix
         unique_filename = f"{uuid.uuid4()}{file_extension}"
-        file_path = PRODUCT_IMAGES_PATH / unique_filename
-        with open(file_path, "wb") as buffer:
+        new_file_path = PRODUCT_IMAGES_PATH / unique_filename
+        with open(new_file_path, "wb") as buffer:
             shutil.copyfileobj(image.file, buffer)
-        final_image_url = f"/static/images/products/{unique_filename}"
-    elif image_url: # New URL provided, overrides uploaded file
-         # Delete old image if it exists and is a local file and new URL is different
-        if product.image_url and final_image_url != image_url and not product.image_url.startswith('http') and (STATIC_PATH.parent / product.image_url.lstrip('/')).exists():
+        final_image_url = f"/static/images/products/{unique_filename}" # Đường dẫn tương đối để phục vụ
+    
+    elif image_url:  # 2. Nếu không có ảnh tải lên, sử dụng URL ảnh mới được cung cấp
+        # Xóa ảnh cục bộ cũ nếu có và URL mới khác với ảnh cũ
+        if old_local_image_path and old_local_image_path.exists() and product.image_url != image_url:
             try:
-                (STATIC_PATH.parent / product.image_url.lstrip('/')).unlink()
+                old_local_image_path.unlink()
+                print(f"Đã xóa ảnh cũ (do có URL mới khác): {old_local_image_path}")
             except OSError as e:
-                print(f"Lỗi xóa ảnh cũ: {e}")
+                print(f"Lỗi xóa ảnh cũ (khi có URL mới): {e}")
         final_image_url = image_url
-    elif current_image_url is None and product.image_url : # Explicitly clearing the image by not providing current_image_url (and no new image/url)
-        if not product.image_url.startswith('http') and (STATIC_PATH.parent / product.image_url.lstrip('/')).exists():
-             try:
-                (STATIC_PATH.parent / product.image_url.lstrip('/')).unlink()
-             except OSError as e:
-                print(f"Lỗi xóa ảnh cũ: {e}")
+        
+    elif delete_current_image:  # 3. Nếu yêu cầu xóa ảnh (và không có ảnh mới/URL mới)
+        if old_local_image_path and old_local_image_path.exists():
+            try:
+                old_local_image_path.unlink()
+                print(f"Đã xóa ảnh hiện tại theo yêu cầu: {old_local_image_path}")
+            except OSError as e:
+                print(f"Lỗi xóa ảnh hiện tại theo yêu cầu: {e}")
         final_image_url = None
-    # If no new image, no new image_url, and current_image_url is present, final_image_url remains product.image_url (already set)
+    
+    # Nếu không có điều kiện nào ở trên được đáp ứng, final_image_url giữ nguyên giá trị ban đầu (product.image_url)
 
     product.name = name
     product.description = description
